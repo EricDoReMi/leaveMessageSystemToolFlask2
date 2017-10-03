@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+  <head>
+    <title>leaveMessageSystemTool</title>
+    <meta charset="UTF-8">
+    <link ref="stylesheet" href="/static/css/common.css">
+    <script src="/static/js/jquery-3.2.1.min.js"></script>
+    <script type="text/javascript">
+    var oStatues
+    var oStaffs
+    var oDates
+    function getFormData(formName){
+		
+        var data = formName.serialize();
+        data = decodeURI(data);
+        var arr = data.split('&');
+        var item,key,value,newData={};
+        for(var i=0;i<arr.length;i++){
+            item = arr[i].split('=');
+            key = item[0];
+            value = item[1];
+            if(key.indexOf('[]')!=-1){
+                key = key.replace('[]','');
+                if(!newData[key]){
+                    newData[key] = [];
+                }
+                newData[key].push(value);
+            }else{
+                newData[key] = value;
+            }
+        }
+        return newData;
+    }
+    
+    function changeStatue(btn){
+    	mybtn=$(btn)
+    	if(mybtn.html()==='N'){
+    		mybtn.html('A')
+    		mybtn.css("backgroundColor","buttonface")
+    	}else{
+    		mybtn.html('N')
+    		mybtn.css("backgroundColor","Red")
+    	}
+    	
+    	var num_tmp=0
+    	$('button.'+mybtn.attr('class')).each(function(index,element){
+    		if($(element).html()!='N'){
+    			num_tmp++
+    		}
+ 
+    	});
+    	console.log(num_tmp)
+   	   	if(num_tmp>$("#checkNumInput").val()){
+    		$('td.smallRecordTitle_'+mybtn.attr('class')).html('N')
+    	}else{
+    		$('td.smallRecordTitle_'+mybtn.attr('class')).html('Y')
+    	}
+    		
+ 
+    }
+    
+    function saveDataFun(save_btn){
+      var finalDatas={staffs:JSON.stringify(oStaffs),
+    				dates:JSON.stringify(oDates),
+    				statues:JSON.stringify(oStatues)
+    				};
+    
+    	$.post('/saveData',finalDatas,function(dataPath){
+    		$('#myFillData').append('<a href="'+dataPath+'">DownLoadExcel</a>')
+    		
+    	});
+    	
+    }
+    
+    $(function(){
+        
+        $('#dataFormSubmit').click(function(){
+		
+            //选取表单
+            var form = $('#dataForm');
+            //获取表单数据
+            var myFormData = getFormData(form);
+            oStatues=[]
+            oStaffs=[]
+            oDates=[]
+            //发送AJAX请求
+            $.post('/getData',myFormData,function(returnData){
+          
+            	  $.each(JSON.parse(returnData),function(idx,item){
+                  	
+            		   //输出  
+            		   if (idx==="dates"){
+            		     	 $.each(item,function(idxDate,itemDate){
+            		     		var oDate=new Object();
+            		     		oDate.myKey=idxDate;
+            		     		oDate.mon=itemDate.mon;
+            		     		oDate.day=itemDate.day;
+            		     		oDate.week=itemDate.week;
+            		     		oDate.statue=itemDate.statue
+            		     		oDates.push(oDate);
+            		     		
+                       		})
+            			   
+            		   }else if(idx==="staffs"){
+            			   $.each(item,function(idxStaff,itemStaff){
+            				   var oStaff=new Object();
+            				   oStaff.myKey=idxStaff;
+            				   oStaff.staffName=itemStaff.staffName;
+            				   oStaff.staffJobTitle=itemStaff.staffJobTitle;
+            				   oStaffs.push(oStaff)
+                      		})
+            			   
+            			   
+            		   }else if(idx==="dateStaffStatues"){
+            			   $.each(item,function(idxStatues,itemStatues){
+            				   var oStatue=new Object();
+            				   oStatue.mykey=idxStatues
+            				   oStatue.myValue=itemStatues
+            				   oStatues.push(oStatue)
+            				   
+            				   
+                      		})
+            			   
+            		   }else{
+            			   console.log('error')
+            		   }
+            		   
+            		})
+            	
+            	//写数据	
+            		
+            	$('#myFillData').empty();        	
+            	$('#myFillData').append('<table cellspacing="1" cellpadding="0" rules="all" id="dgLeaveCalendar_dgLeaveCalendar" style="border-width:0px;width:980px;"><tbody id="returnDataTable"><tr id="returnDataTitle" class="smallRecordtitle" style="color:White;background-color:#939598;border-width:0px;"><td class="smallRecordTitle" align="left"><a style="color:White;">Staff Name</a></td><td class="smallRecordTitle" align="left"><a style="color:White;">Staff ID</a></td><td class="smallRecordTitle" align="left"><a  style="color:White;">Job Title</a></td></tr></tbody></table>')
+            	$('#returnDataTable').append('<tr id="returnDataBottom" class="smallRecordtitle" style="color:White;background-color:#939598;border-width:0px;"><td class="smallRecordTitle" style="border-width:0px;" align="left"></td><td class="smallRecordTitle" style="border-width:0px" align="left"><a style="color:White;">Total</a></td><td class="smallRecordTitle" style="border-width:0px" align="left"></td></tr>')
+            	
+            		 
+           		  for(var i=0;i<oDates.length;i++){
+        			  $('#returnDataTitle').append('<td class="smallRecordTitle" style="color:White;width:1000px;">'+oDates[i].mon+"月"+oDates[i].day+"日"+"<br>"+oDates[i].week+'</td>')
+  		     		  $('#returnDataBottom').append('<td class="smallRecordTitle_'+oDates[i].myKey+'" style="color:White;">'+oDates[i].statue+'</td>')             			 
+         		  }
+        		  
+        		  for(var i=0;i<oStaffs.length;i++){
+        			  $('#returnDataTitle').after('<tr id="'+oStaffs[i].myKey+'" class="smallRecord" style="background-color:White;border-width:0px;"><td class="smallRecord" align="left" style="width:190px;">'+oStaffs[i].staffName+'</td><td class="smallRecord" align="left" style="width:50px;">'+oStaffs[i].myKey+'</td><td class="smallRecord" align="left" style="width:150px;">'+oStaffs[i].staffJobTitle+'</td></tr>')            			  
+         		  }
+        		   
+        		  for(var i=0;i<oStatues.length;i++){
+        			  if(oStatues[i].myValue==="N"){
+        				  $('#'+oStatues[i].mykey.split('_')[0]).append('<td class="smallRecordTitle" style="color:White;"></td>')
+        			  }else{
+        				  $('#'+oStatues[i].mykey.split('_')[0]).append('<td class="smallRecordTitle" style="color:White;"><button id="'+oStatues[i].mykey+'" class="'+oStatues[i].mykey.split('_')[1]+'" onclick=changeStatue(this)'+'>'+oStatues[i].myValue+'</button></td>')  
+        			  }
+        			  
+        		  }
+        		  $('#myFillData').append('<br><p><button id="saveValueButton" onclick="saveDataFun(this)">save Data</button></p>');
+            });
+         
+        });
+         
+    });
+    
+  
+
+
+    
+    </script>
+  </head>
+  <body>
+	<form id="dataForm">
+			<legend>Please complete this data form:</legend>
+			<input name="username" placeholder="Username">
+            <input name="password" placeholder="Password" type="password">
+            <input name="startDate" placeholder="startDate" >example:20170101
+            <input name="endDate" placeholder="endDate" >example:20170131
+            <input id="checkNumInput" name="checkNum" placeholder="checkNum">
+		</form>
+		<p><button id="dataFormSubmit">get Data</button></p>
+		<br>
+<div id="myFillData">		
+
+</div>
+  </body>
+</html>	
